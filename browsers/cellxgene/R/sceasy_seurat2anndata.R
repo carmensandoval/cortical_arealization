@@ -14,9 +14,15 @@
 
 seurat2anndata <- function(
 
-    obj, outFile = NULL, assay = 'RNA', main_layer = 'data', transfer_layers = NULL, drop_single_values = TRUE
-) {
+    obj, 
+    outFile = NULL, 
+    assay = 'RNA', 
+    main_layer = 'scale.data', 
+    transfer_layers = 'counts', 
+    drop_single_values = FALSE) {
+  
     main_layer <- match.arg(main_layer, c('data', 'counts', 'scale.data'))
+    
     transfer_layers <- transfer_layers[
         transfer_layers %in% c('data', 'counts', 'scale.data')]
     transfer_layers <- transfer_layers[transfer_layers != main_layer]
@@ -28,10 +34,13 @@ seurat2anndata <- function(
 
     obs <- .regularise_df(obj@meta.data, drop_single_values = drop_single_values)
 
-    var <- .regularise_df(Seurat::GetAssay(obj, assay = assay)@meta.features, drop_single_values = drop_single_values)
+    var <- .regularise_df(Seurat::GetAssay(obj, assay = assay)@meta.features, 
+                          drop_single_values = drop_single_values)
 
     obsm <- NULL
+    
     reductions <- names(obj@reductions)
+    
     if (length(reductions) > 0) {
         obsm <- sapply(
             reductions,
@@ -51,11 +60,10 @@ seurat2anndata <- function(
     message("\n • Created tmp list •")
     # return(lst(X, obs, var, obsm, layers))
 
-     message("\n • Import AnnData •")
+    message("\n • Import AnnData •")
     anndata <- reticulate::import('anndata', convert = FALSE)
     
     message("\n • Building AnnData object •")
-
     adata <- anndata$AnnData(
         X = Matrix::t(X),
         obs = obs,
@@ -63,6 +71,7 @@ seurat2anndata <- function(
         obsm = obsm,
         layers = layers
     )
+    
    message("\n • Created AnnData object •")
 
    message("\n • Writing AnnData object •")
@@ -73,6 +82,7 @@ seurat2anndata <- function(
    return("Done")
 }
 
+# /////////////////////////
 saveAnnData <- function(intermediate_obj, outFile) {
 
 anndata <- reticulate::import('anndata', convert = FALSE)

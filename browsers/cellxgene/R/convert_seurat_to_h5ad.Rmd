@@ -692,11 +692,6 @@ synonym_to_ensembl <- convertGenesToEnsembl(my_values = my_genes, my_filters = "
 
 ```
 
-
-externalname_to_ensembl %>% distinct(external_gene_name)
-
-
-setdiff(my_genes, externalname_to_ensemblids$external_gene_name) %>% length
 ```{r}
 my_genes %>% length
 # 30,250
@@ -744,11 +739,18 @@ write_tsv(genesymbols_to_ensembl, "cellxgene/browser-dbx/gene_symbols_to_ensembl
 filter(genesymbols_to_ensembl, is.na(ensembl_gene_id))
 # 2,154 missing ENSEMBL IDs
 
+genesymbols_to_ensembl <- read_tsv("../gene_symbols_to_ensembl_ids.tsv")
+
 rownames(neocortex@assays$RNA@counts) <- genesymbols_to_ensembl$new_gene_id
+rownames(neocortex@assays$RNA@data) <- genesymbols_to_ensembl$new_gene_id
+rownames(neocortex@assays$RNA@scale.data) <- genesymbols_to_ensembl$new_gene_id
 
-write_rds(neocortex, "~/cortical_arealization/data/neocortex/2101006_neocortex_v3.2.3_ensembl_ids_schema2.0.rds")
+write_rds(neocortex, "../data_dropbox_alias/neocortex/neocortex_full_v3.2.3_schema2.0_ensembl_ids_scale.rds")
+```
 
-
+## Make random subset:
+```{r}
+# From https://rdrr.io/github/crazyhottommy/scclusteval/src/R/randomsubsetdata.R
 
 RandomSubset<- function(object, rate, random.subset.seed = NULL, ...){
         ncells <- nrow(object@meta.data)
@@ -762,25 +764,13 @@ RandomSubset<- function(object, rate, random.subset.seed = NULL, ...){
         return(object)
 }
 
-small <- RandomSubset(neocortex, rate = 0.1 )
+small <- RandomSubset(neocortex, rate = 0.05)
 
-identical(colnames(neocortex@assays$RNA@counts), rownames(neocortex@meta.data))
-TRUE
-identical(colnames(neocortex@assays$RNA@data), rownames(neocortex@meta.data))
-TRUE
-identical(colnames(neocortex@assays$RNA@scale.data), rownames(neocortex@meta.data))
-TRUE
-
-SubsetData(neocortex, cells = )
 write_rds(neocortex_subset, "neocortex/data/210318_neocortex_v3_subset.01.rds") 
 
-neocortex@assays$RNA@counts %>% glimpse
-```
-```{r}
-seurat2anndata(neocortex, outFile = "neocortex_full_v3.2.3_schema2.0_ensembl.hda5", main_layer = "scale.data", transfer_layers = "counts", drop_single_values = FALSE)
 ```
 
-
+## Scale neocortex_full
 ```{r}
 neocortex_with_scale <- ScaleData(object = neocortex,
                                   do.center = TRUE, 
@@ -788,36 +778,18 @@ neocortex_with_scale <- ScaleData(object = neocortex,
                                   features = rownames(data))  
 
 
-save_rds(neocortex_with_scale, "~/cortical_arealization/data/neocortex/neocortex_full_v3.2.3.rds")
-```
-```{r}
-library(SeuratObject)
-library(SeuratData)
-
-p_load(SeuratData)
-data("pbmc3k.final")
-
-small <- RandomSubset(pbmc3k.final, rate = 0.1)
-small <- RandomSubset(pbmc3k, rate = 0.1)
-
-pbmc3k %>% glimpse
-```
-```{r}
-pbmc3k.final %>% glimpse
-```
-```{r}
-pbmc3k.final@reductions %>% str(levels = 3)
-```
-```{r}
-neocortex@reductions %>% str(levels = 3)
-```
-```{r}
-neocortex@reductions %>% glimpse
-```
-```{r}
-sessionInfo()
+save_rds(neocortex_with_scale, "../data_dropbox_alias/neocortex/neocortex_full_v3.2.3_schema2.0_ensembl_ids_scale.rds")
 ```
 
 ## Convert to h5ad
+```{r}
+source("../R/sceasy_seurat2anndata.R")
 
+neocortex <- read_rds("../data_dropbox_alias/neocortex/neocortex_full_v3.2.3_schema2.0_ensembl_ids_scale.rds") 
+#129gb
+
+seurat2anndata(neocortex, outFile = "../browser-dbx/neocortex/neocortex_full_v3.2.3_schema2.0_ensembl.h5ad", 
+               main_layer = "scale.data", transfer_layers = "counts", 
+               drop_single_values = FALSE)
+```
 
